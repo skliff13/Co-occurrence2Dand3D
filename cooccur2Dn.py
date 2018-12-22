@@ -126,8 +126,8 @@ def __crop_using_mask(im, mask):
     for dim in range(len(im.shape)):
         projection = np.sum(mask, axis=dim).flatten()
         idx = np.argwhere(projection > 0)
-        first = max(0, idx[0] - 1)
-        last = min(len(projection), idx[-1] + 1)
+        first = int(max(0, idx[0] - 1))
+        last = int(min(len(projection), idx[-1] + 1))
         bounds.append((first, last))
 
     im = im[bounds[0][0]:bounds[0][1], bounds[1][0]:bounds[1][1]]

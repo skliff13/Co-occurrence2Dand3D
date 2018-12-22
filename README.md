@@ -6,3 +6,5 @@ Relevant publications:
 doi: 10.1109/42.925295
 
 > Kovalev V., Dmitruk A., Safonau I., Frydman M., Shelkovich S. (2011) A Method for Identification and Visualization of Histological Image Structures Relevant to the Cancer Patient Conditions. In: Real P., Diaz-Pernil D., Molina-Abril H., Berciano A., Kropatsch W. (eds) Computer Analysis of Images and Patterns. CAIP 2011. Lecture Notes in Computer Science, vol 6854. Springer, Berlin, Heidelberg
+
+Cheers!

@@ -4,34 +4,32 @@ from skimage import io
 from scipy.signal import correlate2d
 
 
-def cooccur2D(gray_image2d, i_range=(0, 1), i_bins=8, g_range=(0, 1), g_bins=1, a_bins=1, dists=(1,), mask=None, econ=False):
-    """Calculates extended multi-sort IIGGAD co-occurrence matrix of a 2D gray-level image.
+def cooccur2Dn(gray_image2d, i_range=(0, 1), i_bins=8, dists=(1,), num_dots=2, mask=None, econ=False):
+    """Calculates extended IID and IIID co-occurrence matrix of a 2D gray-level image.
 
-        Extended multi-sort IIGGAD co-occurrence matrices count occurrences of pairs of pixels in the target
-        image which have certain properties. The matrix considers both pixels' intensity (I), gradient magnitudes (G),
-        angle between gradient directions (A) and distance between the two pixels (D).
+    Extended IIID co-occurrence matrices count occurrences of triplets of pixels in the target
+    image which have certain properties. The matrix considers both pixels' intensity (I) and distance between
+    the pixels of each triplet (D).
 
     See paper for details.
-        V. A. Kovalev, F. Kruggel, H.-J. Gertz and D. Y. von Cramon, "Three-dimensional texture analysis of
-        MRI brain datasets," in IEEE Transactions on Medical Imaging, vol. 20, no. 5, pp. 424-433, May 2001.
-        doi: 10.1109/42.925295
+        Kovalev V., Dmitruk A., Safonau I., Frydman M., Shelkovich S. (2011) A Method for Identification and
+        Visualization of Histological Image Structures Relevant to the Cancer Patient Conditions.
+        In: Real P., Diaz-Pernil D., Molina-Abril H., Berciano A., Kropatsch W. (eds) Computer Analysis of
+        Images and Patterns. CAIP 2011. Lecture Notes in Computer Science, vol 6854. Springer, Berlin, Heidelberg
 
     Args:
         gray_image2d (ndarray): 2D numpy array representing the image.
         i_range (tuple): Min and max values indicating the intensity (I) range. Defaults to (0, 1)
         i_bins (int): Number of intensity (I) bins. Defaults to 8.
-        g_range (tuple): Min and max values indicating the gradient magnitude (G) range. Defaults to (0, 1)
-        g_bins (int): Number of gradient magnitude (G) bins. Defaults to 1.
-        a_bins (int): Number of angle (A) bins. Defaults to 1.
         dists (tuple): Distances between pixels to consider. Defaults to (1,).
+        num_dots (int): Can be either 2 for pairs or 3 for pixels triplets.
         mask (ndarray): Region-of-interest (ROI) mask. Only pixels which correspond to positive 'mask' elements
             are considered.
         econ (bool): When set to True, only 0, 45, 90 and 135-degree connections between pixels are considered.
             Makes algorithm run faster when large distances between pixels are considered. Defaults to False.
 
     Return:
-        ndarray: Multi-sort co-occurrence matrix.
-            Dimensionality depends on the binning and number of distances considered.
+        ndarray: Co-occurrence matrix. Dimensionality depends on the binning and number of distances considered.
 
     """
 
@@ -44,19 +42,14 @@ def cooccur2D(gray_image2d, i_range=(0, 1), i_bins=8, g_range=(0, 1), g_bins=1, 
     if mask is not None:
         binned_i[mask == 0] = -1
 
-    grad_x, grad_y = __calculate_gradients(gray_image2d)
-    grad_magnitude = (grad_x**2 + grad_y**2)**0.5
-
-    binned_g = __to_bins(grad_magnitude, g_range, g_bins)
-
     offsets = calc_offsets(dists, econ)
 
-    all_bins = [i_bins, i_bins, g_bins, g_bins, a_bins]
+    all_bins = [i_bins] * num_dots
     bins_prod = int(np.prod(all_bins))
     result = np.zeros((len(dists) * bins_prod))
 
     for i in range(offsets.shape[0]):
-        sub_result = __process_offset(a_bins, all_bins, binned_g, binned_i, bins_prod, dists, grad_x, grad_y, i, offsets)
+        sub_result = __process_offset(i_bins, binned_i, bins_prod, dists, i, offsets, num_dots)
         result += sub_result
 
     all_dims = all_bins.copy()
@@ -72,23 +65,27 @@ def cooccur2D(gray_image2d, i_range=(0, 1), i_bins=8, g_range=(0, 1), g_bins=1, 
     return result
 
 
-def __process_offset(a_bins, all_bins, binned_g, binned_i, bins_prod, dists, grad_x, grad_y, i, offsets):
+def __process_offset(i_bins, binned_i, bins_prod, dists, i, offsets, num_dots):
     dist_idx = dists.index(offsets[i, 0])
     dist_offs = offsets[offsets[:, 0] == dists[dist_idx], :].copy()
     dist_offs = np.append(dist_offs, [[0] * offsets.shape[1]], axis=0)
 
-    to_crop = (max(-dist_offs[:, 2]), max(dist_offs[:, 2]), max(-dist_offs[:, 1]), max(dist_offs[:, 1]))
+    to_crop = (max(-dist_offs[:, 2::2].flatten()), max(dist_offs[:, 2::2].flatten()),
+               max(-dist_offs[:, 1::2].flatten()), max(dist_offs[:, 1::2].flatten()))
 
     ii = (to_crop[0], binned_i.shape[0] - to_crop[1])
     jj = (to_crop[2], binned_i.shape[1] - to_crop[3])
-    b0, g0, x0, y0 = __crop_roi(binned_i, binned_g, grad_x, grad_y, ii, jj)
+    b0 = __crop_roi(binned_i, ii, jj)
 
-    ii1 = (to_crop[0] + offsets[i, 2], binned_i.shape[0] - to_crop[1] + offsets[i, 2])
-    jj1 = (to_crop[2] + offsets[i, 1], binned_i.shape[1] - to_crop[3] + offsets[i, 1])
-    b1, g1, x1, y1 = __crop_roi(binned_i, binned_g, grad_x, grad_y, ii1, jj1)
-    ba = __calc_angular_bins(a_bins, x0, x1, y0, y1)
+    bs = []
+    for ndot in range(2, num_dots + 1):
+        d = (ndot - 2) * 2
+        ii1 = (to_crop[0] + offsets[i, 2 + d], binned_i.shape[0] - to_crop[1] + offsets[i, 2 + d])
+        jj1 = (to_crop[2] + offsets[i, 1 + d], binned_i.shape[1] - to_crop[3] + offsets[i, 1 + d])
+        b1 = __crop_roi(binned_i, ii1, jj1)
+        bs.append(b1)
 
-    comatrix_bins = __map_matrix_bins(all_bins, b0, b1, ba, g0, g1)
+    comatrix_bins = __map_matrix_bins(i_bins, b0, bs, num_dots)
 
     hist, _ = np.histogram(comatrix_bins, bins=range(1, bins_prod + 2, 1))
     hist_shifted = np.zeros((len(dists) * bins_prod))
@@ -96,21 +93,18 @@ def __process_offset(a_bins, all_bins, binned_g, binned_i, bins_prod, dists, gra
     return hist_shifted
 
 
-def __map_matrix_bins(all_bins, b0, b1, ba, g0, g1):
-    feature_bins = np.zeros((b0.shape[0], b0.shape[1], 5)).astype(np.int8)
+def __map_matrix_bins(i_bins, b0, bs, num_dots):
+    feature_bins = np.zeros((b0.shape[0], b0.shape[1], num_dots)).astype(np.int8)
     feature_bins[:, :, 0] = b0
-    feature_bins[:, :, 1] = b1
-    feature_bins[:, :, 2] = g0
-    feature_bins[:, :, 3] = g1
-    feature_bins[:, :, 4] = ba
+    for ndot in range(2, num_dots + 1):
+        feature_bins[:, :, ndot - 1] = bs[ndot - 2]
 
-    feature_bins[:, :, 0:2] = np.sort(feature_bins[:, :, 0:2], axis=2)
-    feature_bins[:, :, 2:4] = np.sort(feature_bins[:, :, 2:4], axis=2)
+    feature_bins = np.sort(feature_bins, axis=2)
+    mn = np.min(feature_bins, axis=2)
 
-    mn = np.min(feature_bins[:, :, 0:2], axis=2)
     comatrix_bins = np.ones((feature_bins.shape[0], feature_bins.shape[1]))
-    for k in range(len(all_bins)):
-        comatrix_bins += (feature_bins[:, :, k].astype(float) - 1) * np.prod(all_bins[0:k])
+    for ndot in range(1, num_dots + 1):
+        comatrix_bins += (feature_bins[:, :, ndot - 1].astype(float) - 1) * i_bins**(ndot - 1)
 
     comatrix_bins[mn < 0] = -1
     comatrix_bins = comatrix_bins.flatten()
@@ -119,31 +113,9 @@ def __map_matrix_bins(all_bins, b0, b1, ba, g0, g1):
     return comatrix_bins
 
 
-def __calc_angular_bins(aBins, x0, x1, y0, y1):
-    if aBins < 2:
-        ba = np.ones(x0.shape)
-        return ba
-
-    a0 = (x0 ** 2 + y0 ** 2) ** 0.5
-    a1 = (x1 ** 2 + y1 ** 2) ** 0.5
-    a01 = ((x0 - x1) ** 2 + (y0 - y1) ** 2) ** 0.5
-    e = 1e-10
-    cosa = (a1 ** 2 + a0 ** 2 - a01 ** 2) / 2. / (a1 + e) / (a0 + e)
-    cosa[cosa > 1] = 1
-    cosa[cosa < -1] = -1
-    ba = np.floor(np.arccos(cosa) / np.pi * aBins).astype(np.int8) + 1
-    ba[ba < 1] = 1
-    ba[ba > aBins] = aBins
-
-    return ba
-
-
-def __crop_roi(b, bg, gx, gy, ii, jj):
+def __crop_roi(b, ii, jj):
     b0 = b[ii[0]:ii[1], jj[0]:jj[1]]
-    g0 = bg[ii[0]:ii[1], jj[0]:jj[1]]
-    x0 = gx[ii[0]:ii[1], jj[0]:jj[1]]
-    y0 = gy[ii[0]:ii[1], jj[0]:jj[1]]
-    return b0, g0, x0, y0
+    return b0
 
 
 def __crop_using_mask(im, mask):
@@ -213,9 +185,12 @@ def calc_offsets_all(dists):
 
 
 def __add_offset(offsets, dists, x, y):
+    s3 = 3. ** 0.5
     d = round((x ** 2 + y ** 2) ** 0.5)
     if d in dists:
-        offsets.append([d, x, y])
+        x1 = round(x / 2. - s3 / 2. * y)
+        y1 = round(y / 2. + s3 / 2. * x)
+        offsets.append([d, x, y, x1, y1])
 
 
 def main():
@@ -223,7 +198,7 @@ def main():
     if np.max(im) > 1:
         im /= 255.
 
-    cm = cooccur2D(im, i_bins=6, dists=(1, 3), econ=True)
+    cm = cooccur2Dn(im, i_bins=6, dists=(1, ), num_dots=3)
     print(cm.astype(int))
 
 

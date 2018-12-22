@@ -182,18 +182,22 @@ def calc_offsets(dists, econ):
     if not econ:
         return calc_offsets_all(dists)
     else:
-        # TODO : fix this, distances must be preserved!
-        off1 = calc_offsets_all((1,))
+        return calc_offsets_econ(dists)
 
-        offsets = None
-        for d in dists:
-            if offsets is None:
-                offsets = off1 * d
-            else:
-                offsets = np.append(offsets, off1 * d, axis=0)
 
-        return offsets
+def calc_offsets_econ(dists):
+    angles = np.pi / 4 * np.asarray([0, 1, 2, 3])
 
+    offsets = []
+    for d in dists:
+        for angle in angles:
+            x = round(d * np.cos(angle))
+            y = round(d * np.sin(angle))
+            offsets.append([d, x, y])
+
+    offsets.sort()
+    offsets = np.asarray(offsets).astype(int)
+    return offsets
 
 def calc_offsets_all(dists):
     max_dist = max(dists)

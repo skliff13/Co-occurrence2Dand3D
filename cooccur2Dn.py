@@ -25,7 +25,8 @@ def cooccur2Dn(gray_image2d, i_range=(0, 1), i_bins=8, dists=(1,), num_dots=2, m
         num_dots (int): Can be either 2 for pairs or 3 for pixels triplets.
         mask (ndarray): Region-of-interest (ROI) mask. Only pixels which correspond to positive 'mask' elements
             are considered.
-        econ (bool): When set to True, only 0, 45, 90 and 135-degree connections between pixels are considered.
+        econ (bool): When set to True, only 0, 45, 90 and 135-degree connections between the first two pixels
+            are considered.
             Makes algorithm run faster when large distances between pixels are considered. Defaults to False.
 
     Return:
@@ -154,17 +155,24 @@ def calc_offsets(dists, econ):
     if not econ:
         return calc_offsets_all(dists)
     else:
-        # TODO : fix this, distances must be preserved!
-        off1 = calc_offsets_all((1,))
+        return calc_offsets_econ(dists)
 
-        offsets = None
-        for d in dists:
-            if offsets is None:
-                offsets = off1 * d
-            else:
-                offsets = np.append(offsets, off1 * d, axis=0)
+def calc_offsets_econ(dists):
+    angles = np.pi / 4 * np.asarray([0, 1, 2, 3])
+    s3 = 3. ** 0.5
 
-        return offsets
+    offsets = []
+    for d in dists:
+        for angle in angles:
+            x = round(d * np.cos(angle))
+            y = round(d * np.sin(angle))
+            x1 = round(x / 2. - s3 / 2. * y)
+            y1 = round(y / 2. + s3 / 2. * x)
+            offsets.append([d, x, y, x1, y1])
+
+    offsets.sort()
+    offsets = np.asarray(offsets).astype(int)
+    return offsets
 
 
 def calc_offsets_all(dists):
@@ -198,7 +206,7 @@ def main():
     if np.max(im) > 1:
         im /= 255.
 
-    cm = cooccur2Dn(im, i_bins=6, dists=(1, ), num_dots=3)
+    cm = cooccur2Dn(im, i_bins=6, dists=(1, ), num_dots=3, econ=True)
     print(cm.astype(int))
 
 

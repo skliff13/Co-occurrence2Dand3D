@@ -5,8 +5,8 @@ from skimage.color import rgb2gray
 
 from cooccur2D import cooccur2D
 
-def example2d():
 
+def example2d():
     im = rgb2gray(io.imread('test_data/lena256.jpg')).astype(float)
     comatrix = cooccur2D(im, i_bins=6, g_bins=3, a_bins=6, dists=(1, 3))
     print('Matrix shape: (Num_Distances, A_bins, G_bins, G_bins, I_bins, I_bins)')

@@ -37,7 +37,7 @@ def cooccur2Dn(gray_image2d, i_range=(0, 1), i_bins=8, dists=(1,), num_dots=2, m
     gray_image2d = gray_image2d.astype(float)
 
     if mask is not None:
-        gray_image2d, mask = __crop_using_mask(gray_image2d, mask)
+        gray_image2d, mask = __crop_using_mask(gray_image2d, mask, dists)
 
     binned_i = __to_bins(gray_image2d, i_range, i_bins)
     if mask is not None:
@@ -119,15 +119,16 @@ def __crop_roi(b, ii, jj):
     return b0
 
 
-def __crop_using_mask(im, mask):
+def __crop_using_mask(im, mask, dists):
     mask[mask < 0] = 0
 
+    d = 1 + max(dists)
     bounds = []
     for dim in range(len(im.shape)):
         projection = np.sum(mask, axis=dim).flatten()
         idx = np.argwhere(projection > 0)
-        first = int(max(0, idx[0] - 1))
-        last = int(min(len(projection), idx[-1] + 1))
+        first = int(max(0, idx[0] - d))
+        last = int(min(len(projection), idx[-1] + d))
         bounds.append((first, last))
 
     im = im[bounds[0][0]:bounds[0][1], bounds[1][0]:bounds[1][1]]

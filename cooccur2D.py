@@ -56,7 +56,8 @@ def cooccur2D(gray_image2d, i_range=(0, 1), i_bins=8, g_range=(0, 1), g_bins=1, 
     result = np.zeros((len(dists) * bins_prod))
 
     for i in range(offsets.shape[0]):
-        sub_result = __process_offset(a_bins, all_bins, binned_g, binned_i, bins_prod, dists, grad_x, grad_y, i, offsets)
+        sub_result = __process_offset(a_bins, all_bins, binned_g, binned_i, bins_prod, dists, grad_x, grad_y, i,
+                                      offsets)
         result += sub_result
 
     all_dims = all_bins.copy()

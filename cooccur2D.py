@@ -227,7 +227,7 @@ def __add_offset(offsets, dists, x, y):
 
 
 def main():
-    im = io.imread('lena256_gray.png').astype(float)
+    im = io.imread('test_data/lena256_gray.png').astype(float)
     if np.max(im) > 1:
         im /= 255.
 

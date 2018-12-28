@@ -151,8 +151,9 @@ def __crop_using_mask(im, mask, dists):
 
     d = 1 + max(dists)
     bounds = []
+    proj_dims = [1, 0]
     for dim in range(len(im.shape)):
-        projection = np.sum(mask, axis=dim).flatten()
+        projection = np.sum(mask, axis=proj_dims[dim]).flatten()
         idx = np.argwhere(projection > 0)
         first = int(max(0, idx[0] - d))
         last = int(min(len(projection), idx[-1] + d))
@@ -200,6 +201,7 @@ def calc_offsets_econ(dists):
     offsets = np.asarray(offsets).astype(int)
     return offsets
 
+
 def calc_offsets_all(dists):
     max_dist = max(dists)
     offsets = []
@@ -213,7 +215,7 @@ def calc_offsets_all(dists):
             __add_offset(offsets, dists, x, y)
 
     offsets.sort()
-    offsets = np.asarray(offsets)
+    offsets = np.asarray(offsets).astype(int)
     return offsets
 
 

@@ -58,7 +58,8 @@ def cooccur3D(gray_image3d, i_range=(0, 1), i_bins=8, g_range=(0, 1), g_bins=1, 
     result = np.zeros((len(dists) * bins_prod))
 
     for i in range(offsets.shape[0]):
-        sub_result = __process_offset(a_bins, all_bins, binned_g, binned_i, bins_prod, dists, grad_x, grad_y, i, offsets)
+        sub_result = __process_offset(a_bins, all_bins, binned_g, binned_i, bins_prod, dists, grad_x, grad_y, i,
+                                      offsets)
         result += sub_result
 
     all_dims = all_bins.copy()
@@ -157,8 +158,9 @@ def __crop_using_mask(im, mask, dists, z2xy):
     d = [1 + max(dists)] * 3
     d[2] = 1 + round(0.5 + max(dists) / z2xy)
     bounds = []
+    proj_dims = [(1, 2), (0, 2), (0, 1)]
     for dim in range(len(im.shape)):
-        projection = np.sum(mask, axis=dim).flatten()
+        projection = np.sum(mask, axis=proj_dims[dim]).flatten()
         idx = np.argwhere(projection > 0)
         first = int(max(0, idx[0] - d[dim]))
         last = int(min(len(projection), idx[-1] + d[dim]))
@@ -255,7 +257,7 @@ def calc_offsets_all(dists, z2xy):
                 __add_offset(offsets, dists, x, y, z, z2xy)
 
     offsets.sort()
-    offsets = np.asarray(offsets)
+    offsets = np.asarray(offsets).astype(int)
     return offsets
 
 

@@ -24,7 +24,7 @@ Functions to use:
 for 2D gray-level images, only pixel pairs are considered.
 * `cooccur2Dn` for calculation of IID and IIID matrices
 for 2D gray-level images, pixel pairs and triplets are considered.
-* `cooccur3D` (*coming soon*) for calculation of IIGGAD matrices and their sub-variants
+* `cooccur3D` for calculation of IIGGAD matrices and their sub-variants
 for 3D gray-level images, only pixel pairs are considered.
 
 GGAD and AD sub-variants of the multi-sort matrices can be used to 

@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 import numpy as np
-from skimage import io
 from scipy.signal import correlate
 
 

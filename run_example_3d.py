@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import nibabel as nb
 
 from cooccur3D import cooccur3D

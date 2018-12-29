@@ -4,7 +4,7 @@ from skimage import io
 from scipy.signal import correlate
 
 
-def cooccur3D(gray_image3d, i_range=(0, 1), i_bins=8, g_range=(0, 1), g_bins=1, a_bins=1, dists=(1,), mask=None,
+def cooccur3D(gray_image3d, i_range=(0, 1.), i_bins=8, g_range=(0, 1.5), g_bins=1, a_bins=1, dists=(1,), mask=None,
               econ=False, z2xy=1.0):
     """Calculates extended multi-sort IIGGAD co-occurrence matrix of a 3D gray-level image.
 
@@ -19,9 +19,9 @@ def cooccur3D(gray_image3d, i_range=(0, 1), i_bins=8, g_range=(0, 1), g_bins=1, 
 
     Args:
         gray_image3d (ndarray): 3D numpy array representing the image.
-        i_range (tuple): Min and max values indicating the intensity (I) range. Defaults to (0, 1)
+        i_range (tuple): Min and max values indicating the intensity (I) range. Defaults to (0, 1.)
         i_bins (int): Number of intensity (I) bins. Defaults to 8.
-        g_range (tuple): Min and max values indicating the gradient magnitude (G) range. Defaults to (0, 1)
+        g_range (tuple): Min and max values indicating the gradient magnitude (G) range. Defaults to (0, 1.5)
         g_bins (int): Number of gradient magnitude (G) bins. Defaults to 1.
         a_bins (int): Number of angle (A) bins. Defaults to 1.
         dists (tuple): Distances between pixels to consider. Defaults to (1,).
@@ -113,12 +113,12 @@ def __map_matrix_bins(all_bins, b0, b1, ba, g0, g1):
     feature_bins[:, :, :, 0:2] = np.sort(feature_bins[:, :, :, 0:2], axis=2)
     feature_bins[:, :, :, 2:4] = np.sort(feature_bins[:, :, :, 2:4], axis=2)
 
-    mn = np.min(feature_bins[:, :, :, 0:2], axis=3)
+    min_values = np.min(feature_bins[:, :, :, 0:2], axis=3)
     comatrix_bins = np.ones((feature_bins.shape[0], feature_bins.shape[1], feature_bins.shape[2]))
     for k in range(len(all_bins)):
         comatrix_bins += (feature_bins[:, :, :, k].astype(float) - 1) * np.prod(all_bins[0:k])
 
-    comatrix_bins[mn < 0] = -1
+    comatrix_bins[min_values < 0] = -1
     comatrix_bins = comatrix_bins.flatten()
     comatrix_bins = comatrix_bins[comatrix_bins > 0]
 
@@ -265,17 +265,3 @@ def __add_offset(offsets, dists, x, y, z, z2xy):
     d = round((x ** 2 + y ** 2 + (z * z2xy) ** 2) ** 0.5)
     if d in dists:
         offsets.append([d, x, y, z])
-
-
-def main():
-    sz = 64
-    xx = np.linspace(0, 1, sz)
-    const_grad, _, _ = np.meshgrid(xx, xx * 0, xx * 0)
-    im1 = const_grad * 0.9 + np.random.rand(sz, sz, sz) * 0.1
-
-    cm = cooccur3D(im1, i_bins=6, dists=(1,), econ=True)
-    print(cm.astype(int))
-
-
-if __name__ == '__main__':
-    main()

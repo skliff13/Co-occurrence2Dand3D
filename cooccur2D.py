@@ -4,7 +4,7 @@ from skimage import io
 from scipy.signal import correlate2d
 
 
-def cooccur2D(gray_image2d, i_range=(0, 1), i_bins=8, g_range=(0, 1), g_bins=1, a_bins=1, dists=(1,), mask=None, econ=False):
+def cooccur2D(gray_image2d, i_range=(0, 1.), i_bins=8, g_range=(0, 2.5), g_bins=1, a_bins=1, dists=(1,), mask=None, econ=False):
     """Calculates extended multi-sort IIGGAD co-occurrence matrix of a 2D gray-level image.
 
         Extended multi-sort IIGGAD co-occurrence matrices count occurrences of pairs of pixels in the target
@@ -18,9 +18,9 @@ def cooccur2D(gray_image2d, i_range=(0, 1), i_bins=8, g_range=(0, 1), g_bins=1, 
 
     Args:
         gray_image2d (ndarray): 2D numpy array representing the image.
-        i_range (tuple): Min and max values indicating the intensity (I) range. Defaults to (0, 1)
+        i_range (tuple): Min and max values indicating the intensity (I) range. Defaults to (0, 1.)
         i_bins (int): Number of intensity (I) bins. Defaults to 8.
-        g_range (tuple): Min and max values indicating the gradient magnitude (G) range. Defaults to (0, 1)
+        g_range (tuple): Min and max values indicating the gradient magnitude (G) range. Defaults to (0, 2.5)
         g_bins (int): Number of gradient magnitude (G) bins. Defaults to 1.
         a_bins (int): Number of angle (A) bins. Defaults to 1.
         dists (tuple): Distances between pixels to consider. Defaults to (1,).
@@ -108,12 +108,12 @@ def __map_matrix_bins(all_bins, b0, b1, ba, g0, g1):
     feature_bins[:, :, 0:2] = np.sort(feature_bins[:, :, 0:2], axis=2)
     feature_bins[:, :, 2:4] = np.sort(feature_bins[:, :, 2:4], axis=2)
 
-    mn = np.min(feature_bins[:, :, 0:2], axis=2)
+    min_values = np.min(feature_bins[:, :, 0:2], axis=2)
     comatrix_bins = np.ones((feature_bins.shape[0], feature_bins.shape[1]))
     for k in range(len(all_bins)):
         comatrix_bins += (feature_bins[:, :, k].astype(float) - 1) * np.prod(all_bins[0:k])
 
-    comatrix_bins[mn < 0] = -1
+    comatrix_bins[min_values < 0] = -1
     comatrix_bins = comatrix_bins.flatten()
     comatrix_bins = comatrix_bins[comatrix_bins > 0]
 
@@ -224,16 +224,3 @@ def __add_offset(offsets, dists, x, y):
     d = round((x ** 2 + y ** 2) ** 0.5)
     if d in dists:
         offsets.append([d, x, y])
-
-
-def main():
-    im = io.imread('test_data/lena256_gray.png').astype(float)
-    if np.max(im) > 1:
-        im /= 255.
-
-    cm = cooccur2D(im, i_bins=6, dists=(1, 3), econ=True)
-    print(cm.astype(int))
-
-
-if __name__ == '__main__':
-    main()

@@ -4,7 +4,7 @@ from skimage import io
 from scipy.signal import correlate2d
 
 
-def cooccur2Dn(gray_image2d, i_range=(0, 1), i_bins=8, dists=(1,), num_dots=2, mask=None, econ=False):
+def cooccur2Dn(gray_image2d, i_range=(0, 1.), i_bins=8, dists=(1,), num_dots=2, mask=None, econ=False):
     """Calculates extended IID and IIID co-occurrence matrix of a 2D gray-level image.
 
     Extended IIID co-occurrence matrices count occurrences of triplets of pixels in the target
@@ -19,7 +19,7 @@ def cooccur2Dn(gray_image2d, i_range=(0, 1), i_bins=8, dists=(1,), num_dots=2, m
 
     Args:
         gray_image2d (ndarray): 2D numpy array representing the image.
-        i_range (tuple): Min and max values indicating the intensity (I) range. Defaults to (0, 1)
+        i_range (tuple): Min and max values indicating the intensity (I) range. Defaults to (0, 1.)
         i_bins (int): Number of intensity (I) bins. Defaults to 8.
         dists (tuple): Distances between pixels to consider. Defaults to (1,).
         num_dots (int): Can be either 2 for pairs or 3 for pixels triplets.
@@ -101,13 +101,13 @@ def __map_matrix_bins(i_bins, b0, bs, num_dots):
         feature_bins[:, :, ndot - 1] = bs[ndot - 2]
 
     feature_bins = np.sort(feature_bins, axis=2)
-    mn = np.min(feature_bins, axis=2)
+    min_values = np.min(feature_bins, axis=2)
 
     comatrix_bins = np.ones((feature_bins.shape[0], feature_bins.shape[1]))
     for ndot in range(1, num_dots + 1):
         comatrix_bins += (feature_bins[:, :, ndot - 1].astype(float) - 1) * i_bins**(ndot - 1)
 
-    comatrix_bins[mn < 0] = -1
+    comatrix_bins[min_values < 0] = -1
     comatrix_bins = comatrix_bins.flatten()
     comatrix_bins = comatrix_bins[comatrix_bins > 0]
 
@@ -159,6 +159,7 @@ def calc_offsets(dists, econ):
     else:
         return calc_offsets_econ(dists)
 
+
 def calc_offsets_econ(dists):
     angles = np.pi / 4 * np.asarray([0, 1, 2, 3])
     s3 = 3. ** 0.5
@@ -201,16 +202,3 @@ def __add_offset(offsets, dists, x, y):
         x1 = round(x / 2. - s3 / 2. * y)
         y1 = round(y / 2. + s3 / 2. * x)
         offsets.append([d, x, y, x1, y1])
-
-
-def main():
-    im = io.imread('test_data/lena256_gray.png').astype(float)
-    if np.max(im) > 1:
-        im /= 255.
-
-    cm = cooccur2Dn(im, i_bins=6, dists=(1,), num_dots=3)
-    print(cm.astype(int))
-
-
-if __name__ == '__main__':
-    main()
